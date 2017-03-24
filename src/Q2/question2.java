@@ -3,44 +3,49 @@ package Q2;
 import java.io.*;
 import java.util.*;
 
-public class main {
+public class question2 {
     // flags to select which algorithm
-    final static boolean ASTAR = true;
-    final static boolean GREEDY = false;
-    final static boolean DIAGONALS_ALLOWED = false;
+    private final static boolean ASTAR = true;
+    private final static boolean GREEDY = false;
+    private final static boolean DIAGONALS_ALLOWED = false;
 
-    
-    final static String fileName = "pathfinding_a.txt"; //filename
+
+    private final static String fileName = "pathfinding_a.txt"; //filename
 
     public static void main(String[] args) {
-        // get contents from file
-        ArrayList<ArrayList<Node>> grid = new ArrayList<>(); // used to store the initial grid
-        Node startNode = null;
-        Node goalNode = null;
+        // indexes of nodes correspond to index of gridList
+        ArrayList<Node> startNode = new ArrayList<>();
+        ArrayList<Node> goalNode = new ArrayList<>();
+        ArrayList<ArrayList<ArrayList<Node>>> gridList = new ArrayList<>(); // used to store all the grids
         // loop through each character and add it to the grid
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
             int yCoordinate = 0; //keeps track of which yPos coordinate we're on
-            for (String line; (line = br.readLine()) != null; ) { // loop through each line
-                if (!line.equals("")) {
-                    ArrayList<Node> row = new ArrayList<>();
-                    for (int xCoordinate = 0; xCoordinate < line.length(); xCoordinate++) {// loop through each character in the line
-                        char c = line.charAt(xCoordinate);
-                        Node tempNode = new Node(c, xCoordinate, yCoordinate);
-                        if (c == 'S') {
-                            startNode = tempNode;
-                        } else if (c == 'G') {
-                            goalNode = tempNode;
+            String line; // used to store each line
+            do {
+                ArrayList<ArrayList<Node>> grid = new ArrayList<>(); // used to store the grid input
+                for (; (line = br.readLine()) != null; ) { // loop through each line
+                    if (!line.equals("")) {
+                        ArrayList<Node> row = new ArrayList<>();
+                        for (int xCoordinate = 0; xCoordinate < line.length(); xCoordinate++) {// loop through each character in the line
+                            char c = line.charAt(xCoordinate);
+                            Node tempNode = new Node(c, xCoordinate, yCoordinate);
+                            if (c == 'S') {
+                                startNode.add(tempNode);
+                            } else if (c == 'G') {
+                                goalNode.add(tempNode);
+                            }
+                            row.add(tempNode);
                         }
-                        row.add(tempNode);
+                        grid.add(row);
+                        yCoordinate++;
+                    } else {
+                        // reset variable for new grid
+                        yCoordinate = 0;
+                        break;
                     }
-                    grid.add(row);
-                    yCoordinate++;
-                } else {
-                    // TODO when there's more than one grid...
-                    System.out.println("Another grid...");
-                    break;
                 }
-            }
+                gridList.add(grid);
+            } while (line != null);
         } catch (Exception e) {
             System.out.println("Could not find " + fileName);
             e.printStackTrace();
@@ -48,25 +53,59 @@ public class main {
         }
 
         // submitted gridList
+        System.out.println("initial grids:");
+        printGridList(gridList);
         System.out.println();
-        System.out.println("initial grid:");
-        printGrid(grid);
 
-        ArrayList<ArrayList<Node>> result; // used to store the resulting grid
-        // A* Algorithm
-        result = pathFinding(grid, startNode, goalNode, ASTAR, DIAGONALS_ALLOWED);
-        System.out.println();
-        System.out.println("A* Algorithm");
-        printGrid(result);
+        System.out.println("Diagonals NOT allowed:");
+        // loop through all stored grids and apply both algorithms, where they cannot move diagonally
+        for (int i = 0; i < gridList.size(); i++) {
+            ArrayList<ArrayList<Node>> g = gridList.get(i);
+            ArrayList<ArrayList<Node>> result; // used to store the resulting grid
+            // A* Algorithm
+            result = pathFinding(g, startNode.get(i), goalNode.get(i), ASTAR, DIAGONALS_ALLOWED);
+            System.out.println("A* Algorithm");
+            printGrid(result);
 
-        // Greedy Algorithm
-        result = pathFinding(grid, startNode, goalNode, GREEDY, DIAGONALS_ALLOWED);
-        System.out.println("Greedy Algorithm");
-        printGrid(result);
+            // Greedy Algorithm
+            result = pathFinding(g, startNode.get(i), goalNode.get(i), GREEDY, DIAGONALS_ALLOWED);
+            System.out.println("Greedy Algorithm");
+            printGrid(result);
+
+            System.out.println(); // seperate for next grid
+        }
+
+        System.out.println("Diagonals allowed:");
+        // loop through all stored grids and apply both algorithms, where they can move diagonally
+        for (int i = 0; i < gridList.size(); i++) {
+            ArrayList<ArrayList<Node>> g = gridList.get(i);
+            ArrayList<ArrayList<Node>> result; // used to store the resulting grid
+            // A* Algorithm
+            result = pathFinding(g, startNode.get(i), goalNode.get(i), ASTAR, !DIAGONALS_ALLOWED);
+            System.out.println("A* Algorithm");
+            printGrid(result);
+
+            // Greedy Algorithm
+            result = pathFinding(g, startNode.get(i), goalNode.get(i), GREEDY, !DIAGONALS_ALLOWED);
+            System.out.println("Greedy Algorithm");
+            printGrid(result);
+
+            System.out.println();
+        }
 
 
     }
 
+    /**
+     * Path finding algorithm. Uses flags to determine which algorithm to use, and what movement types it has
+     *
+     * @param grid      grid to be traversed in
+     * @param startNode the node in which algorithm starts with
+     * @param goalNode  the node in which the algorithm wants to get to
+     * @param algorithm true = A*; false = greedy
+     * @param diagonals true = diagonal movement allowed; false = diagonal movement not allowed
+     * @return the new grid where the path is drawn out
+     */
     private static ArrayList<ArrayList<Node>> pathFinding(ArrayList<ArrayList<Node>> grid, Node startNode, Node goalNode, boolean algorithm, boolean diagonals) {
         // deep copy grid
         ArrayList<ArrayList<Node>> newGrid = new ArrayList<>();
@@ -184,6 +223,11 @@ public class main {
 
     }
 
+    /**
+     * Prints all the grids in an arraylist
+     *
+     * @param gridList gridlist to be printed
+     */
     private static void printGridList(ArrayList<ArrayList<ArrayList<Node>>> gridList) {
         for (ArrayList<ArrayList<Node>> grid : gridList) {
             printGrid(grid);
@@ -191,6 +235,11 @@ public class main {
         }
     }
 
+    /**
+     * prints a single grid
+     *
+     * @param grid grid to be printed
+     */
     private static void printGrid(ArrayList<ArrayList<Node>> grid) {
         for (ArrayList<Node> yPos : grid) {
             for (Node xPos : yPos) {
